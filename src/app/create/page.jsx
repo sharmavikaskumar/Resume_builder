@@ -1,28 +1,16 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  FileText,
-  User,
-  GraduationCap,
-  Briefcase,
-  Zap,
-  FolderGit2,
-  BadgeCheck,
-  Trophy,
-  Phone,
-  Menu,
-  X,
-  Check,
-  Plus,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  Code2,
-  Home,
+  FileText, User, GraduationCap, Briefcase, Zap,
+  FolderGit2, BadgeCheck, Trophy, Phone, Menu,
+  X, Check, Plus, Trash2, ChevronLeft,
+  ChevronRight, Code2, Home, Save,
 } from "lucide-react";
+
+const STORAGE_KEY = "resumeforge_data";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DATA
@@ -53,6 +41,31 @@ const SUGGESTED = [
   "JavaScript","TypeScript","React","Next.js","Node.js",
   "Python","SQL","Git","Docker","AWS","Figma","REST APIs",
 ];
+
+// ── localStorage helpers ──────────────────────────────────────────────────────
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(data) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Storage full or unavailable — fail silently
+  }
+}
+
+function clearStorage() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {}
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRIMITIVES
@@ -157,10 +170,7 @@ function PersonalForm({ data, onChange }) {
   const set = (f) => (e) => onChange({ ...data, [f]: e.target.value });
   return (
     <div>
-      <SectionTitle
-        title="Personal information"
-        description="This appears at the top of your resume as your header."
-      />
+      <SectionTitle title="Personal information" description="This appears at the top of your resume as your header." />
       <Card>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
           <Input label="First name" placeholder="John" value={data.firstName} onChange={set("firstName")} />
@@ -169,12 +179,7 @@ function PersonalForm({ data, onChange }) {
         <div className="mb-5">
           <Input label="Professional title" placeholder="Full Stack Developer" value={data.title} onChange={set("title")} />
         </div>
-        <Textarea
-          label="Summary" optional
-          placeholder="A brief 2–3 sentence summary of your professional background and goals."
-          value={data.summary}
-          onChange={set("summary")}
-        />
+        <Textarea label="Summary" optional placeholder="A brief 2–3 sentence summary of your professional background and goals." value={data.summary} onChange={set("summary")} />
       </Card>
     </div>
   );
@@ -237,86 +242,56 @@ function ExperienceForm({ data, onChange }) {
   );
 }
 
-// Replace the entire SkillsForm function in your src/app/create/page.js
-
 function SkillsForm({ data, onChange }) {
   const [input, setInput] = useState("");
-
   const add = () => {
     const v = input.trim();
     if (!v || data.includes(v)) return;
     onChange([...data, v]);
     setInput("");
   };
-
   const remove = (s) => onChange(data.filter((x) => x !== s));
-
   return (
     <div>
-      <SectionTitle
-        title="Skills"
-        description="Add technical and professional skills. Press Enter or click Add."
-      />
+      <SectionTitle title="Skills" description="Add technical and professional skills. Press Enter or click Add." />
       <Card>
-        {/* ── Added skill tags ── */}
         {data.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-5 pb-5 border-b border-gray-100">
             {data.map((s) => (
-              <span
-                key={s}
-                className="inline-flex items-center gap-1.5 bg-black text-white
-                           text-xs font-medium px-3 py-1.5 rounded-full"
-              >
+              <span key={s} className="inline-flex items-center gap-1.5 bg-black text-white text-xs font-medium px-3 py-1.5 rounded-full">
                 {s}
-                <button
-                  onClick={() => remove(s)}
-                  className="text-white/50 hover:text-white transition-colors ml-0.5"
-                >
+                <button onClick={() => remove(s)} className="text-white/50 hover:text-white transition-colors ml-0.5">
                   <X size={12} />
                 </button>
               </span>
             ))}
           </div>
         )}
-
-        {/* ── Input row — FIXED for mobile ── */}
-        <div className="flex flex-col sm:flex-row gap-2 mb-5 ">
+        <div className="flex flex-col sm:flex-row gap-2 mb-5">
           <input
-            className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3
-                       text-sm text-black placeholder:text-gray-300 outline-none
-                       focus:border-black focus:ring-1 focus:ring-black transition-all"
+            className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-black
+                       placeholder:text-gray-300 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
             placeholder="e.g. React, Python, Figma…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                add();
-              }
-            }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
           />
-          {/* Full width on mobile, auto width on sm+ */}
           <button
             onClick={add}
-            className="w-full sm:w-auto flex items-center justify-center gap-2
-                       bg-black text-white text-sm font-semibold
-                       px-6 py-3 rounded-xl hover:bg-gray-800
-                       transition-colors whitespace-nowrap"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white
+                       text-sm font-semibold px-6 py-3 rounded-xl hover:bg-gray-800 transition-colors"
           >
             <Plus size={16} /> Add skill
           </button>
         </div>
-
-        {/* ── Suggested skills ── */}
         <p className="text-xs text-gray-400 font-medium mb-3">Suggested skills</p>
         <div className="flex flex-wrap gap-2">
           {SUGGESTED.filter((s) => !data.includes(s)).map((s) => (
             <button
               key={s}
               onClick={() => onChange([...data, s])}
-              className="flex items-center gap-1 text-xs text-gray-500 bg-gray-50
-                         border border-gray-200 px-3 py-1.5 rounded-full
-                         hover:bg-black hover:text-white hover:border-black transition-all"
+              className="flex items-center gap-1 text-xs text-gray-500 bg-gray-50 border border-gray-200
+                         px-3 py-1.5 rounded-full hover:bg-black hover:text-white hover:border-black transition-all"
             >
               <Plus size={10} /> {s}
             </button>
@@ -344,12 +319,7 @@ function ProjectsForm({ data, onChange }) {
           <div className="mb-5">
             <Input label="Project link" optional placeholder="https://github.com/..." value={p.link} onChange={update(p.id, "link")} />
           </div>
-          <Textarea
-            label="Description"
-            placeholder="What did you build? What problem did it solve?"
-            value={p.description}
-            onChange={update(p.id, "description")}
-          />
+          <Textarea label="Description" placeholder="What did you build? What problem did it solve?" value={p.description} onChange={update(p.id, "description")} />
         </Card>
       ))}
       <AddEntryBtn label="Add another project" onClick={add} />
@@ -396,12 +366,7 @@ function AchievementsForm({ data, onChange }) {
             <Input label="Achievement" placeholder="Dean's List — Spring 2021" value={a.title} onChange={update(a.id, "title")} />
             <Input label="Year"        placeholder="2021"                      value={a.year}  onChange={update(a.id, "year")} />
           </div>
-          <Textarea
-            label="Description" optional
-            placeholder="A brief description of what you achieved and why it matters."
-            value={a.description}
-            onChange={update(a.id, "description")}
-          />
+          <Textarea label="Description" optional placeholder="A brief description of what you achieved and why it matters." value={a.description} onChange={update(a.id, "description")} />
         </Card>
       ))}
       <AddEntryBtn label="Add another achievement" onClick={add} />
@@ -435,7 +400,7 @@ function ContactForm({ data, onChange }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SIDEBAR
 // ─────────────────────────────────────────────────────────────────────────────
-function Sidebar({ current, done, onGoTo, onClose, isMobile }) {
+function Sidebar({ current, done, onGoTo, onClose, isMobile, onClear }) {
   const pct = Math.round(((current + 1) / SECTIONS.length) * 100);
   return (
     <aside className="flex flex-col h-full w-64 bg-white border-r border-gray-200">
@@ -453,23 +418,20 @@ function Sidebar({ current, done, onGoTo, onClose, isMobile }) {
         )}
       </div>
 
+      {/* Progress */}
       <div className="flex-shrink-0 px-5 pt-5 pb-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Progress</span>
           <span className="text-[10px] font-semibold text-gray-400">{pct}%</span>
         </div>
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-black rounded-full transition-all duration-500"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="h-full bg-black rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-2 mb-2">
-          Sections
-        </p>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-2 mb-2">Sections</p>
         {SECTIONS.map((sec, idx) => {
           const active = current === idx;
           const isDone = done.has(idx) && !active;
@@ -478,10 +440,7 @@ function Sidebar({ current, done, onGoTo, onClose, isMobile }) {
               key={sec.id}
               onClick={() => onGoTo(idx)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 text-left transition-all text-sm
-                ${active
-                  ? "bg-black text-white font-semibold"
-                  : "text-gray-500 hover:bg-gray-50 hover:text-black"
-                }`}
+                ${active ? "bg-black text-white font-semibold" : "text-gray-500 hover:bg-gray-50 hover:text-black"}`}
             >
               <sec.Icon size={16} className="flex-shrink-0" />
               <span className="flex-1 truncate">{sec.label}</span>
@@ -495,13 +454,18 @@ function Sidebar({ current, done, onGoTo, onClose, isMobile }) {
         })}
       </nav>
 
-      <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-xs text-gray-400 hover:text-black transition-colors"
-        >
+      {/* Footer */}
+      <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100 space-y-2">
+        <Link href="/" className="flex items-center gap-2 text-xs text-gray-400 hover:text-black transition-colors">
           <Home size={13} /> Back to home
         </Link>
+        {/* Clear saved data */}
+        <button
+          onClick={onClear}
+          className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 transition-colors"
+        >
+          <Trash2 size={13} /> Clear saved data
+        </button>
       </div>
     </aside>
   );
@@ -512,11 +476,32 @@ function Sidebar({ current, done, onGoTo, onClose, isMobile }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function CreatePage() {
   const router                    = useRouter();
-  const [current,  setCurrent]    = useState(0);
-  const [done,     setDone]       = useState(new Set());
-  const [data,     setData]       = useState(INITIAL);
-  const [menuOpen, setMenuOpen]   = useState(false);
+  const [current,   setCurrent]   = useState(0);
+  const [done,      setDone]      = useState(new Set());
+  const [data,      setData]      = useState(INITIAL);
+  const [menuOpen,  setMenuOpen]  = useState(false);
+  const [saveState, setSaveState] = useState("idle"); // "idle" | "saving" | "saved"
   const mainRef                   = useRef(null);
+  const saveTimer                 = useRef(null);
+
+  // ── Load from localStorage on first mount ──────────────────────────────────
+  useEffect(() => {
+    const saved = loadFromStorage();
+    if (saved) setData(saved);
+  }, []);
+
+  // ── Auto-save on every data change (debounced 800ms) ───────────────────────
+  useEffect(() => {
+    setSaveState("saving");
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveToStorage(data);
+      setSaveState("saved");
+      // Reset back to idle after 2s
+      setTimeout(() => setSaveState("idle"), 2000);
+    }, 800);
+    return () => clearTimeout(saveTimer.current);
+  }, [data]);
 
   const goTo = (idx) => {
     setDone((p) => new Set([...p, current]));
@@ -530,10 +515,19 @@ export default function CreatePage() {
     if (next >= 0 && next < SECTIONS.length) goTo(next);
   };
 
-  // ── Save data to localStorage then go to /generate ────────────────────────
+  // ── Navigate to /generate (data already saved by auto-save) ───────────────
   const handleGenerate = () => {
-    localStorage.setItem("resumeforge_data", JSON.stringify(data));
+    saveToStorage(data); // force save immediately before navigating
     router.push("/generate");
+  };
+
+  // ── Clear all saved data and reset form ───────────────────────────────────
+  const handleClear = () => {
+    if (!confirm("Clear all saved resume data and start fresh?")) return;
+    clearStorage();
+    setData(INITIAL);
+    setDone(new Set());
+    setCurrent(0);
   };
 
   const isLast = current === SECTIONS.length - 1;
@@ -556,32 +550,26 @@ export default function CreatePage() {
 
       {/* Desktop sidebar */}
       <div className="hidden md:flex flex-col sticky top-0 h-screen flex-shrink-0">
-        <Sidebar current={current} done={done} onGoTo={goTo} isMobile={false} />
+        <Sidebar current={current} done={done} onGoTo={goTo} isMobile={false} onClear={handleClear} />
       </div>
 
       {/* Mobile drawer */}
       {menuOpen && (
         <>
-          <div
-            className="fixed inset-0 bg-black/30 z-40 md:hidden"
-            onClick={() => setMenuOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/30 z-40 md:hidden" onClick={() => setMenuOpen(false)} />
           <div className="fixed inset-y-0 left-0 z-50 flex flex-col md:hidden shadow-2xl overflow-y-auto">
-            <Sidebar current={current} done={done} onGoTo={goTo} onClose={() => setMenuOpen(false)} isMobile />
+            <Sidebar current={current} done={done} onGoTo={goTo} onClose={() => setMenuOpen(false)} isMobile onClear={handleClear} />
           </div>
         </>
       )}
 
-      {/* Main content */}
+      {/* Main */}
       <div className="flex flex-col flex-1 min-w-0">
 
         {/* Top bar */}
         <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 md:px-8 h-14 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <button
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              onClick={() => setMenuOpen(true)}
-            >
+            <button className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors" onClick={() => setMenuOpen(true)}>
               <Menu size={18} />
             </button>
             <div className="hidden md:flex items-center gap-2 text-sm text-gray-400">
@@ -592,29 +580,42 @@ export default function CreatePage() {
             <span className="md:hidden text-sm font-semibold text-black">{SECTIONS[current].label}</span>
           </div>
 
-          {/* TOP BAR — Generate button */}
-          <button
-            onClick={isLast ? handleGenerate : undefined}
-            disabled={!isLast}
-            className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all
-              ${isLast
-                ? "bg-black text-white hover:bg-gray-800 cursor-pointer"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
-          >
-            <Code2 size={15} />
-            <span className="hidden sm:inline">Generate LaTeX</span>
-            <span className="sm:hidden">Generate</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Auto-save status indicator */}
+            <div className={`hidden sm:flex items-center gap-1.5 text-xs transition-all duration-300
+              ${saveState === "saved"  ? "text-green-500" : ""}
+              ${saveState === "saving" ? "text-gray-400"  : ""}
+              ${saveState === "idle"   ? "opacity-0"      : "opacity-100"}
+            `}>
+              {saveState === "saving" && <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse" />}
+              {saveState === "saved"  && <Save size={12} />}
+              {saveState === "saving" ? "Saving…" : "Saved"}
+            </div>
+
+            {/* Generate button */}
+            <button
+              onClick={isLast ? handleGenerate : undefined}
+              disabled={!isLast}
+              className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all
+                ${isLast
+                  ? "bg-black text-white hover:bg-gray-800 cursor-pointer"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                }`}
+            >
+              <Code2 size={15} />
+              <span className="hidden sm:inline">Generate LaTeX</span>
+              <span className="sm:hidden">Generate</span>
+            </button>
+          </div>
         </header>
 
-        {/* Scrollable form area */}
+        {/* Form area */}
         <main ref={mainRef} className="flex-1 px-4 md:px-10 py-8 pb-[calc(2rem+env(safe-area-inset-bottom))]">
           <div className="max-w-2xl mx-auto">
 
             {renderSection()}
 
-            {/* Bottom navigation */}
+            {/* Bottom nav */}
             <div className="flex items-center justify-between pt-6 mt-2 border-t border-gray-200">
               <button
                 onClick={() => navigate(-1)}
@@ -628,22 +629,20 @@ export default function CreatePage() {
                 <ChevronLeft size={16} /> Back
               </button>
 
+              {/* Step dots */}
               <div className="flex items-center gap-1">
                 {SECTIONS.map((_, i) => (
                   <div
                     key={i}
                     className={`rounded-full transition-all ${
-                      i === current
-                        ? "w-5 h-2 bg-black"
-                        : done.has(i)
-                        ? "w-2 h-2 bg-green-400"
-                        : "w-2 h-2 bg-gray-200"
+                      i === current  ? "w-5 h-2 bg-black"
+                      : done.has(i)  ? "w-2 h-2 bg-green-400"
+                      :                "w-2 h-2 bg-gray-200"
                     }`}
                   />
                 ))}
               </div>
 
-              {/* BOTTOM NAV — Generate button on last step */}
               {isLast ? (
                 <button
                   onClick={handleGenerate}
