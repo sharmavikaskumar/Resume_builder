@@ -42,8 +42,12 @@ const SUGGESTED = [
   "Python","SQL","Git","Docker","AWS","Figma","REST APIs",
 ];
 
-// ── localStorage helpers ──────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// LOCALSTORAGE HELPERS
+// FIX: Always check typeof window first — localStorage doesn't exist on server
+// ─────────────────────────────────────────────────────────────────────────────
 function loadFromStorage() {
+  if (typeof window === "undefined") return null;  // ← KEY FIX
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
@@ -54,6 +58,7 @@ function loadFromStorage() {
 }
 
 function saveToStorage(data) {
+  if (typeof window === "undefined") return;       // ← KEY FIX
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -62,6 +67,7 @@ function saveToStorage(data) {
 }
 
 function clearStorage() {
+  if (typeof window === "undefined") return;       // ← KEY FIX
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch {}
@@ -418,7 +424,6 @@ function Sidebar({ current, done, onGoTo, onClose, isMobile, onClear }) {
         )}
       </div>
 
-      {/* Progress */}
       <div className="flex-shrink-0 px-5 pt-5 pb-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Progress</span>
@@ -429,7 +434,6 @@ function Sidebar({ current, done, onGoTo, onClose, isMobile, onClear }) {
         </div>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-2 mb-2">Sections</p>
         {SECTIONS.map((sec, idx) => {
@@ -454,12 +458,10 @@ function Sidebar({ current, done, onGoTo, onClose, isMobile, onClear }) {
         })}
       </nav>
 
-      {/* Footer */}
       <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100 space-y-2">
         <Link href="/" className="flex items-center gap-2 text-xs text-gray-400 hover:text-black transition-colors">
           <Home size={13} /> Back to home
         </Link>
-        {/* Clear saved data */}
         <button
           onClick={onClear}
           className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 transition-colors"
@@ -476,32 +478,39 @@ function Sidebar({ current, done, onGoTo, onClose, isMobile, onClear }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function CreatePage() {
   const router                    = useRouter();
+  const [hydrated,  setHydrated]  = useState(false); // ← KEY FIX
   const [current,   setCurrent]   = useState(0);
   const [done,      setDone]      = useState(new Set());
   const [data,      setData]      = useState(INITIAL);
   const [menuOpen,  setMenuOpen]  = useState(false);
-  const [saveState, setSaveState] = useState("idle"); // "idle" | "saving" | "saved"
+  const [saveState, setSaveState] = useState("idle");
   const mainRef                   = useRef(null);
   const saveTimer                 = useRef(null);
 
-  // ── Load from localStorage on first mount ──────────────────────────────────
+  // ── STEP 1: Hydrate from localStorage ONLY after mount ────────────────────
+  // This is the key fix — we wait for the component to mount on the client
+  // before reading localStorage. This prevents SSR/hydration mismatch on
+  // mobile browsers which caused data to vanish on refresh.
   useEffect(() => {
     const saved = loadFromStorage();
     if (saved) setData(saved);
+    setHydrated(true); // mark as hydrated so auto-save can begin
   }, []);
 
-  // ── Auto-save on every data change (debounced 800ms) ───────────────────────
+  // ── STEP 2: Auto-save on every data change — but ONLY after hydration ─────
+  // Without the hydrated check, the INITIAL empty state would overwrite
+  // the saved data in localStorage on every page load.
   useEffect(() => {
+    if (!hydrated) return; // ← KEY FIX: don't save until we've loaded first
     setSaveState("saving");
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveToStorage(data);
       setSaveState("saved");
-      // Reset back to idle after 2s
       setTimeout(() => setSaveState("idle"), 2000);
     }, 800);
     return () => clearTimeout(saveTimer.current);
-  }, [data]);
+  }, [data, hydrated]);
 
   const goTo = (idx) => {
     setDone((p) => new Set([...p, current]));
@@ -515,13 +524,11 @@ export default function CreatePage() {
     if (next >= 0 && next < SECTIONS.length) goTo(next);
   };
 
-  // ── Navigate to /generate (data already saved by auto-save) ───────────────
   const handleGenerate = () => {
-    saveToStorage(data); // force save immediately before navigating
+    saveToStorage(data);
     router.push("/generate");
   };
 
-  // ── Clear all saved data and reset form ───────────────────────────────────
   const handleClear = () => {
     if (!confirm("Clear all saved resume data and start fresh?")) return;
     clearStorage();
@@ -544,6 +551,18 @@ export default function CreatePage() {
     if (id === "achievements")   return <AchievementsForm  data={data.achievements}   onChange={set("achievements")} />;
     if (id === "contact")        return <ContactForm       data={data.contact}        onChange={set("contact")} />;
   };
+
+  // ── STEP 3: Show nothing until hydrated to prevent flash of empty form ────
+  if (!hydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="flex items-center gap-3 text-sm text-gray-400">
+          <div className="w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+          Loading your resume…
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -581,18 +600,17 @@ export default function CreatePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Auto-save status indicator */}
+            {/* Save indicator */}
             <div className={`hidden sm:flex items-center gap-1.5 text-xs transition-all duration-300
-              ${saveState === "saved"  ? "text-green-500" : ""}
-              ${saveState === "saving" ? "text-gray-400"  : ""}
-              ${saveState === "idle"   ? "opacity-0"      : "opacity-100"}
+              ${saveState === "saved"  ? "text-green-500 opacity-100" : ""}
+              ${saveState === "saving" ? "text-gray-400 opacity-100"  : ""}
+              ${saveState === "idle"   ? "opacity-0 pointer-events-none" : ""}
             `}>
               {saveState === "saving" && <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse" />}
               {saveState === "saved"  && <Save size={12} />}
-              {saveState === "saving" ? "Saving…" : "Saved"}
+              <span>{saveState === "saving" ? "Saving…" : "Saved"}</span>
             </div>
 
-            {/* Generate button */}
             <button
               onClick={isLast ? handleGenerate : undefined}
               disabled={!isLast}
@@ -612,7 +630,6 @@ export default function CreatePage() {
         {/* Form area */}
         <main ref={mainRef} className="flex-1 px-4 md:px-10 py-8 pb-[calc(2rem+env(safe-area-inset-bottom))]">
           <div className="max-w-2xl mx-auto">
-
             {renderSection()}
 
             {/* Bottom nav */}
@@ -629,15 +646,14 @@ export default function CreatePage() {
                 <ChevronLeft size={16} /> Back
               </button>
 
-              {/* Step dots */}
               <div className="flex items-center gap-1">
                 {SECTIONS.map((_, i) => (
                   <div
                     key={i}
                     className={`rounded-full transition-all ${
-                      i === current  ? "w-5 h-2 bg-black"
-                      : done.has(i)  ? "w-2 h-2 bg-green-400"
-                      :                "w-2 h-2 bg-gray-200"
+                      i === current ? "w-5 h-2 bg-black"
+                      : done.has(i) ? "w-2 h-2 bg-green-400"
+                      :               "w-2 h-2 bg-gray-200"
                     }`}
                   />
                 ))}
@@ -659,7 +675,6 @@ export default function CreatePage() {
                 </button>
               )}
             </div>
-
           </div>
         </main>
       </div>
