@@ -1,5 +1,5 @@
 // src/utils/latexGenerator.js
-// Matches Jake Gutierrez's resume format exactly
+// Jake Gutierrez format + FontAwesome5 icons in header
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -40,7 +40,7 @@ function makeLink(url = "", display = "") {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PREAMBLE — exactly Jake's format
+// PREAMBLE — Jake's format + fontawesome5
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PREAMBLE = `%-------------------------
@@ -63,6 +63,7 @@ const PREAMBLE = `%-------------------------
 \\usepackage{fancyhdr}
 \\usepackage[english]{babel}
 \\usepackage{tabularx}
+\\usepackage{fontawesome5}
 \\input{glyphtounicode}
 
 \\pagestyle{fancy}
@@ -129,41 +130,75 @@ const PREAMBLE = `%-------------------------
 \\newcommand{\\resumeItemListEnd}{\\end{itemize}\\vspace{-5pt}}`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SECTION BUILDERS
+// HEADER — with FontAwesome5 icons + clickable links
 // ─────────────────────────────────────────────────────────────────────────────
 
 function buildHeader(personal = {}, contact = {}) {
   const fullName =
     `${esc(personal.firstName || "")} ${esc(personal.lastName || "")}`.trim() || "Your Name";
 
-  // Build each contact item — only include if filled
-  const parts = [
-    contact.phone
-      ? `\\small ${esc(contact.phone)}`
-      : null,
-    contact.email
-      ? `\\href{mailto:${contact.email}}{\\underline{${esc(contact.email)}}}`
-      : null,
-    contact.linkedin
-      ? makeLink(contact.linkedin, contact.linkedin.replace(/^https?:\/\//, ""))
-      : null,
-    contact.github
-      ? makeLink(contact.github, contact.github.replace(/^https?:\/\//, ""))
-      : null,
-    contact.portfolio
-      ? makeLink(contact.portfolio, contact.portfolio.replace(/^https?:\/\//, ""))
-      : null,
-  ].filter(Boolean);
+  const parts = [];
+
+  // 📍 Location — map marker icon
+  if (contact.location) {
+    parts.push(`\\faMapMarker\\ \\small ${esc(contact.location)}`);
+  }
+
+  // 📞 Phone — phone icon + clickable tel link
+  if (contact.phone) {
+    const tel = contact.phone.replace(/[\s\-()]/g, "");
+    parts.push(
+      `\\href{tel:${tel}}{\\faPhone\\ \\small ${esc(contact.phone)}}`
+    );
+  }
+
+  // ✉️ Email — envelope icon + clickable mailto link
+  if (contact.email) {
+    parts.push(
+      `\\href{mailto:${contact.email}}{\\faEnvelope\\ \\small ${esc(contact.email)}}`
+    );
+  }
+
+  // 💼 LinkedIn — linkedin icon + clickable link
+  if (contact.linkedin) {
+    const url     = contact.linkedin.startsWith("http") ? contact.linkedin : `https://${contact.linkedin}`;
+    const display = contact.linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, "");
+    parts.push(
+      `\\href{${url}}{\\faLinkedin\\ \\small ${esc(display)}}`
+    );
+  }
+
+  // 🐙 GitHub — github icon + clickable link
+  if (contact.github) {
+    const url     = contact.github.startsWith("http") ? contact.github : `https://${contact.github}`;
+    const display = contact.github.replace(/^https?:\/\/(www\.)?github\.com\//, "");
+    parts.push(
+      `\\href{${url}}{\\faGithub\\ \\small ${esc(display)}}`
+    );
+  }
+
+  // 🌐 Portfolio — globe icon + clickable link
+  if (contact.portfolio) {
+    const url     = contact.portfolio.startsWith("http") ? contact.portfolio : `https://${contact.portfolio}`;
+    const display = contact.portfolio.replace(/^https?:\/\//, "");
+    parts.push(
+      `\\href{${url}}{\\faGlobe\\ \\small ${esc(display)}}`
+    );
+  }
 
   const contactLine = parts.join(" $|$ ");
-  const locationLine = contact.location ? `\\small ${esc(contact.location)} $|$ ` : "";
 
   return `%----------HEADING----------
 \\begin{center}
-    \\textbf{\\Huge \\scshape ${fullName}} \\\\ \\vspace{1pt}
-    ${locationLine}${contactLine}
+    \\textbf{\\Huge \\scshape ${fullName}} \\\\ \\vspace{4pt}
+    ${personal.title ? `\\textit{\\large ${esc(personal.title)}} \\\\ \\vspace{4pt}` : ""}
+    \\small ${contactLine || "your@email.com"}
 \\end{center}`;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION BUILDERS
+// ─────────────────────────────────────────────────────────────────────────────
 
 function buildSummary(personal = {}) {
   if (!personal.summary) return "";
@@ -180,9 +215,11 @@ function buildEducation(education = []) {
 
   const rows = entries.map((e) => {
     const dateRange = [e.startYear, e.endYear].filter(Boolean).join(" -- ");
-    const gpaLine   = e.gpa ? `\n      \\resumeItemListStart\n        \\resumeItem{GPA: ${esc(e.gpa)}}\n      \\resumeItemListEnd` : "";
+    const gpaLine   = e.gpa
+      ? `\n      \\resumeItemListStart\n        \\resumeItem{GPA: ${esc(e.gpa)}}\n      \\resumeItemListEnd`
+      : "";
     return `    \\resumeSubheading
-      {${esc(e.institution)}}{${esc(e.location || "")}}
+      {${esc(e.institution)}}{}
       {${esc(e.degree)}}{${esc(dateRange)}}${gpaLine}`;
   });
 
@@ -218,11 +255,13 @@ function buildProjects(projects = []) {
   if (!entries.length) return "";
 
   const rows = entries.map((p) => {
-    const techPart  = p.techStack ? `\\emph{${esc(p.techStack)}}` : "";
-    const linkPart  = p.link      ? ` $|$ ${makeLink(p.link, "Link")}` : "";
-    const namePart  = `\\textbf{${esc(p.name)}}`;
-    const heading   = [namePart, techPart].filter(Boolean).join(" $|$ ");
-    const bullets   = toBullets(p.description);
+    const techPart = p.techStack ? `\\emph{${esc(p.techStack)}}` : "";
+    const linkPart = p.link
+      ? ` $|$ \\href{${p.link.startsWith("http") ? p.link : "https://" + p.link}}{\\faExternalLink*\\ \\small Link}`
+      : "";
+    const namePart = `\\textbf{${esc(p.name)}}`;
+    const heading  = [namePart, techPart].filter(Boolean).join(" $|$ ");
+    const bullets  = toBullets(p.description);
     return `      \\resumeProjectHeading
           {${heading}${linkPart}}{}
 ${bullets}`;
@@ -238,10 +277,9 @@ ${rows.join("\n")}
 function buildSkills(skills = []) {
   if (!skills.length) return "";
 
-  // Group into max 6 per row labelled Languages, Frameworks, Tools, Libraries
-  const labels  = ["Languages", "Frameworks", "Developer Tools", "Libraries"];
-  const size    = Math.ceil(skills.length / 4);
-  const chunks  = [];
+  const labels = ["Languages", "Frameworks", "Developer Tools", "Libraries"];
+  const size   = Math.ceil(skills.length / 4);
+  const chunks = [];
   for (let i = 0; i < skills.length; i += size) {
     chunks.push(skills.slice(i, i + size));
   }
@@ -286,7 +324,7 @@ function buildAchievements(achievements = []) {
   if (!entries.length) return "";
 
   const items = entries.map((a) => {
-    const year = a.year        ? ` (${esc(a.year)})`        : "";
+    const year = a.year        ? ` (${esc(a.year)})`         : "";
     const desc = a.description ? ` -- ${esc(a.description)}` : "";
     return `    \\resumeItem{\\textbf{${esc(a.title)}}${year}${desc}}`;
   });
@@ -314,8 +352,6 @@ export function generateLatex(data = {}) {
     achievements   = [],
   } = data;
 
-  // Section order matches Jake's resume exactly:
-  // Header → Education → Experience → Projects → Skills → Certs → Achievements
   const sections = [
     buildHeader(personal, contact),
     buildSummary(personal),
