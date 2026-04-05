@@ -139,51 +139,30 @@ function buildHeader(personal = {}, contact = {}) {
 
   const parts = [];
 
-  // 📍 Location — map marker icon
   if (contact.location) {
     parts.push(`\\faMapMarker\\ \\small ${esc(contact.location)}`);
   }
-
-  // 📞 Phone — phone icon + clickable tel link
   if (contact.phone) {
     const tel = contact.phone.replace(/[\s\-()]/g, "");
-    parts.push(
-      `\\href{tel:${tel}}{\\faPhone\\ \\small ${esc(contact.phone)}}`
-    );
+    parts.push(`\\href{tel:${tel}}{\\faPhone\\ \\small ${esc(contact.phone)}}`);
   }
-
-  // ✉️ Email — envelope icon + clickable mailto link
   if (contact.email) {
-    parts.push(
-      `\\href{mailto:${contact.email}}{\\faEnvelope\\ \\small ${esc(contact.email)}}`
-    );
+    parts.push(`\\href{mailto:${contact.email}}{\\faEnvelope\\ \\small ${esc(contact.email)}}`);
   }
-
-  // 💼 LinkedIn — linkedin icon + clickable link
   if (contact.linkedin) {
     const url     = contact.linkedin.startsWith("http") ? contact.linkedin : `https://${contact.linkedin}`;
     const display = contact.linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, "");
-    parts.push(
-      `\\href{${url}}{\\faLinkedin\\ \\small ${esc(display)}}`
-    );
+    parts.push(`\\href{${url}}{\\faLinkedin\\ \\small ${esc(display)}}`);
   }
-
-  // 🐙 GitHub — github icon + clickable link
   if (contact.github) {
     const url     = contact.github.startsWith("http") ? contact.github : `https://${contact.github}`;
     const display = contact.github.replace(/^https?:\/\/(www\.)?github\.com\//, "");
-    parts.push(
-      `\\href{${url}}{\\faGithub\\ \\small ${esc(display)}}`
-    );
+    parts.push(`\\href{${url}}{\\faGithub\\ \\small ${esc(display)}}`);
   }
-
-  // 🌐 Portfolio — globe icon + clickable link
   if (contact.portfolio) {
     const url     = contact.portfolio.startsWith("http") ? contact.portfolio : `https://${contact.portfolio}`;
     const display = contact.portfolio.replace(/^https?:\/\//, "");
-    parts.push(
-      `\\href{${url}}{\\faGlobe\\ \\small ${esc(display)}}`
-    );
+    parts.push(`\\href{${url}}{\\faGlobe\\ \\small ${esc(display)}}`);
   }
 
   const contactLine = parts.join(" $|$ ");
@@ -319,15 +298,34 @@ ${rows.join("\n")}
   \\resumeSubHeadingListEnd`;
 }
 
-function buildAchievements(achievements = []) {
-  const entries = achievements.filter((a) => a.title);
-  if (!entries.length) return "";
+// ─── UPDATED: achievements is now a plain string, not an array ───────────────
+function buildAchievements(achievements) {
+  // Handle both string (new) and array (old localStorage data)
+  let text = "";
+  if (typeof achievements === "string") {
+    text = achievements;
+  } else if (Array.isArray(achievements)) {
+    // backwards compat: convert old array format to text
+    text = achievements
+      .filter((a) => a.title)
+      .map((a) => {
+        const year = a.year        ? ` (${a.year})`        : "";
+        const desc = a.description ? ` -- ${a.description}` : "";
+        return `${a.title}${year}${desc}`;
+      })
+      .join("\n");
+  }
 
-  const items = entries.map((a) => {
-    const year = a.year        ? ` (${esc(a.year)})`         : "";
-    const desc = a.description ? ` -- ${esc(a.description)}` : "";
-    return `    \\resumeItem{\\textbf{${esc(a.title)}}${year}${desc}}`;
-  });
+  const lines = text
+    .split("\n")
+    .map((l) => l.replace(/^[•\-]\s*/, "").trim())
+    .filter(Boolean);
+
+  if (!lines.length) return "";
+
+  const items = lines.map(
+    (line) => `    \\resumeItem{${esc(line)}}`
+  );
 
   return `%-----------ACHIEVEMENTS-----------
 \\section{Achievements}
@@ -349,7 +347,7 @@ export function generateLatex(data = {}) {
     skills         = [],
     projects       = [],
     certifications = [],
-    achievements   = [],
+    achievements   = "",   // ← now a string
   } = data;
 
   const sections = [

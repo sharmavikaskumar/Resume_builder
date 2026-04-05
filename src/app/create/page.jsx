@@ -50,7 +50,7 @@ const INITIAL = {
   certifications: [
     { id: 1, name: "", issuer: "", issueDate: "", expiryDate: "" },
   ],
-  achievements: [{ id: 1, title: "", year: "", description: "" }],
+ achievements: "",
   contact: {
     email: "",
     phone: "",
@@ -586,49 +586,28 @@ function CertsForm({ data, onChange }) {
 }
 
 function AchievementsForm({ data, onChange }) {
-  const update = (id, f) => (e) =>
-    onChange(
-      data.map((d) => (d.id === id ? { ...d, [f]: e.target.value } : d)),
-    );
-  const add = () =>
-    onChange([
-      ...data,
-      { id: Date.now(), title: "", year: "", description: "" },
-    ]);
-  const remove = (id) => onChange(data.filter((d) => d.id !== id));
   return (
     <div>
       <SectionTitle
         title="Achievements"
-        description="Awards, honors, publications, or other notable accomplishments."
+        description="List your achievements as bullet points, one per line."
       />
-      {data.map((a, i) => (
-        <Card key={a.id}>
-          <CardHeader index={i} onRemove={() => remove(a.id)} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-            <Input
-              label="Achievement"
-              placeholder="Dean's List — Spring 2021"
-              value={a.title}
-              onChange={update(a.id, "title")}
-            />
-            <Input
-              label="Year"
-              placeholder="2021"
-              value={a.year}
-              onChange={update(a.id, "year")}
-            />
-          </div>
-          <Textarea
-            label="Description"
-            optional
-            placeholder="A brief description of what you achieved and why it matters."
-            value={a.description}
-            onChange={update(a.id, "description")}
-          />
-        </Card>
-      ))}
-      <AddEntryBtn label="Add another achievement" onClick={add} />
+      <Card>
+        <Label>Achievements</Label>
+        <textarea
+          rows={8}
+          className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3
+                     text-sm text-black placeholder:text-gray-300 outline-none
+                     focus:border-black focus:ring-1 focus:ring-black
+                     transition-all resize-y leading-relaxed"
+          placeholder={"• Secured 1st Prize in Poster Making Competition.\n• Won 2nd Prize in PPT Presentation on AI Tools.\n• Achieved 1st Prize in Short Film Creation using AI."}
+          value={data}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <p className="text-xs text-gray-400 mt-2">
+          Start each line with • or - or plain text. One achievement per line.
+        </p>
+      </Card>
     </div>
   );
 }
@@ -867,13 +846,7 @@ export default function CreatePage() {
           onChange={set("certifications")}
         />
       );
-    if (id === "achievements")
-      return (
-        <AchievementsForm
-          data={data.achievements}
-          onChange={set("achievements")}
-        />
-      );
+    if (id === "achievements") return <AchievementsForm data={data.achievements} onChange={set("achievements")} />;
     if (id === "contact")
       return <ContactForm data={data.contact} onChange={set("contact")} />;
   };
