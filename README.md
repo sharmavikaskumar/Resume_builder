@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Resume Builder
 
-## Getting Started
+A modern Resume Builder web application that helps users create professional resumes easily.  
+Users can enter their information section by section such as profile details, education, skills, projects, experience, and more.
 
-First, run the development server:
+The application generates a LaTeX-based resume template dynamically using the provided data.  
+After generating the resume, users are redirected to the Overleaf website where they can preview, edit, and download the final PDF resume.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Features
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+- User-friendly resume creation flow
+- Section-based form input
+- Dynamic resume generation
+- LaTeX template generation
+- Redirect to Overleaf for PDF export
+- Clean and responsive UI
+- Real-time data handling
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Sections Included
 
-To learn more about Next.js, take a look at the following resources:
+- Profile Information
+- About Me / Summary
+- Skills
+- Education
+- Experience
+- Projects
+- Certifications
+- Achievements
+- Contact Information
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tech Stack
 
-## Deploy on Vercel
+### Frontend
+- React.js
+- Tailwind CSS
+- JavaScript
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Backend
+- Node.js
+- Express.js
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Other Tools
+- LaTeX
+- Overleaf Integration
+
+---
+
+## How It Works
+
+1. User enters resume information.
+2. Data is collected section-wise.
+3. The application converts the data into a LaTeX template.
+4. Generated LaTeX code is sent to Overleaf.
+5. User can preview and download the resume as a PDF.
+
+---
+
+
